@@ -18,19 +18,18 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.         *
  ***************************************************************************/
 
+#include "identserver.h"
+
 #include <limits>
 
 #include "corenetwork.h"
-#include "identserver.h"
-#include "logmessage.h"
 
-IdentServer::IdentServer(QObject *parent)
+IdentServer::IdentServer(QObject* parent)
     : QObject(parent)
 {
-    connect(&_server, SIGNAL(newConnection()), this, SLOT(incomingConnection()));
-    connect(&_v6server, SIGNAL(newConnection()), this, SLOT(incomingConnection()));
+    connect(&_server, &QTcpServer::newConnection, this, &IdentServer::incomingConnection);
+    connect(&_v6server, &QTcpServer::newConnection, this, &IdentServer::incomingConnection);
 }
-
 
 bool IdentServer::startListening()
 {
@@ -52,7 +51,7 @@ bool IdentServer::startListening()
             switch (addr.protocol()) {
                 case QAbstractSocket::IPv6Protocol:
                     if (_v6server.listen(addr, port)) {
-                        quInfo() << qPrintable(
+                        qInfo() << qPrintable(
                                 tr("Listening for identd requests on IPv6 %1 port %2")
                                         .arg(addr.toString())
                                         .arg(_v6server.serverPort())
@@ -60,7 +59,7 @@ bool IdentServer::startListening()
                         success = true;
                     }
                     else
-                        quWarning() << qPrintable(
+                        qWarning() << qPrintable(
                                 tr("Could not open IPv6 interface %1:%2: %3")
                                         .arg(addr.toString())
                                         .arg(port)
@@ -68,7 +67,7 @@ bool IdentServer::startListening()
                     break;
                 case QAbstractSocket::IPv4Protocol:
                     if (_server.listen(addr, port)) {
-                        quInfo() << qPrintable(
+                        qInfo() << qPrintable(
                                 tr("Listening for identd requests on IPv4 %1 port %2")
                                         .arg(addr.toString())
                                         .arg(_server.serverPort())
@@ -78,7 +77,7 @@ bool IdentServer::startListening()
                     else {
                         // if v6 succeeded on Any, the port will be already in use - don't display the error then
                         if (!success || _server.serverError() != QAbstractSocket::AddressInUseError)
-                            quWarning() << qPrintable(
+                            qWarning() << qPrintable(
                                     tr("Could not open IPv4 interface %1:%2: %3")
                                             .arg(addr.toString())
                                             .arg(port)
@@ -96,14 +95,13 @@ bool IdentServer::startListening()
     }
 
     if (!success) {
-        quError() << qPrintable(tr("Identd could not open any network interfaces to listen on! No identd functionality will be available"));
+        qWarning() << qPrintable(tr("Identd could not open any network interfaces to listen on! No identd functionality will be available"));
     }
 
     return success;
 }
 
-
-void IdentServer::stopListening(const QString &msg)
+void IdentServer::stopListening(const QString& msg)
 {
     bool wasListening = false;
 
@@ -118,28 +116,26 @@ void IdentServer::stopListening(const QString &msg)
 
     if (wasListening) {
         if (msg.isEmpty())
-            quInfo() << "No longer listening for identd clients.";
+            qInfo() << "No longer listening for identd clients.";
         else
-            quInfo() << qPrintable(msg);
+            qInfo() << qPrintable(msg);
     }
 }
-
 
 void IdentServer::incomingConnection()
 {
-    auto server = qobject_cast<QTcpServer *>(sender());
+    auto server = qobject_cast<QTcpServer*>(sender());
     Q_ASSERT(server);
     while (server->hasPendingConnections()) {
-        QTcpSocket *socket = server->nextPendingConnection();
-        connect(socket, SIGNAL(readyRead()), this, SLOT(respond()));
-        connect(socket, SIGNAL(disconnected()), socket, SLOT(deleteLater()));
+        QTcpSocket* socket = server->nextPendingConnection();
+        connect(socket, &QIODevice::readyRead, this, &IdentServer::respond);
+        connect(socket, &QAbstractSocket::disconnected, socket, &QObject::deleteLater);
     }
 }
 
-
 void IdentServer::respond()
 {
-    QTcpSocket *socket = qobject_cast<QTcpSocket *>(sender());
+    auto* socket = qobject_cast<QTcpSocket*>(sender());
     Q_ASSERT(socket);
 
     qint64 transactionId = _socketId;
@@ -154,17 +150,22 @@ void IdentServer::respond()
     else if (query.endsWith("\n"))
         query.chop(1);
 
+    qDebug() << "Received identd query" << query << "from" << socket->peerAddress();
+
     QList<QByteArray> split = query.split(',');
 
-    bool success = false;
+    bool successLocalPort = false;
+    bool successRemotePort = false;
 
     quint16 localPort = 0;
-    if (!split.empty()) {
-        localPort = split[0].trimmed().toUShort(&success, 10);
+    quint16 remotePort = 0;
+    if (split.length() == 2) {
+        localPort = split[0].trimmed().toUShort(&successLocalPort, 10);
+        remotePort = split[1].trimmed().toUShort(&successRemotePort, 10);
     }
 
-    Request request{socket, localPort, query, transactionId, _requestId++};
-    if (!success) {
+    Request request{socket, localPort, remotePort, query, transactionId, _requestId++};
+    if (!successLocalPort || !successRemotePort) {
         request.respondError("INVALID-PORT");
     }
     else if (responseAvailable(request)) {
@@ -178,28 +179,33 @@ void IdentServer::respond()
     }
 }
 
-
-void Request::respondSuccess(const QString &user)
+void Request::respondSuccess(const QString& user)
 {
     if (socket) {
-        QString data = query + " : USERID : Quassel : " + user + "\r\n";
+        QString data = QString("%1, %2 : USERID : Quassel : %3\r\n")
+            .arg(QString::number(localPort))
+            .arg(QString::number(remotePort))
+            .arg(user);
+        qDebug() << "answering identd request from" << socket->peerAddress() << "with" << data;
         socket->write(data.toUtf8());
         socket->flush();
-        socket->close();
+        QTimer::singleShot(DISCONNECTION_TIMEOUT, socket, &QTcpSocket::close);
     }
 }
 
-
-void Request::respondError(const QString &error)
+void Request::respondError(const QString& error)
 {
     if (socket) {
-        QString data = query + " : ERROR : " + error + "\r\n";
+        QString data = QString("%1, %2 : ERROR : %3\r\n")
+            .arg(QString::number(localPort))
+            .arg(QString::number(remotePort))
+            .arg(error);
+        qDebug() << "answering identd request from" << socket->peerAddress() << "with" << data;
         socket->write(data.toUtf8());
         socket->flush();
-        socket->close();
+        QTimer::singleShot(DISCONNECTION_TIMEOUT, socket, &QTcpSocket::close);
     }
 }
-
 
 bool IdentServer::responseAvailable(Request request) const
 {
@@ -211,22 +217,29 @@ bool IdentServer::responseAvailable(Request request) const
     return true;
 }
 
-
-void IdentServer::addSocket(const CoreIdentity *identity, const QHostAddress &localAddress, quint16 localPort,
-                            const QHostAddress &peerAddress, quint16 peerPort, qint64 socketId)
+void IdentServer::addSocket(const CoreIdentity* identity,
+                            const QHostAddress& localAddress,
+                            quint16 localPort,
+                            const QHostAddress& peerAddress,
+                            quint16 peerPort,
+                            qint64 socketId)
 {
     Q_UNUSED(localAddress)
     Q_UNUSED(peerAddress)
     Q_UNUSED(peerPort)
 
-    const CoreNetwork *network = qobject_cast<CoreNetwork *>(sender());
-    _connections[localPort] = network->coreSession()->strictCompliantIdent(identity);;
+    const CoreNetwork* network = qobject_cast<CoreNetwork*>(sender());
+    _connections[localPort] = network->coreSession()->strictCompliantIdent(identity);
+
     processWaiting(socketId);
 }
 
-
-void IdentServer::removeSocket(const CoreIdentity *identity, const QHostAddress &localAddress, quint16 localPort,
-                               const QHostAddress &peerAddress, quint16 peerPort, qint64 socketId)
+void IdentServer::removeSocket(const CoreIdentity* identity,
+                               const QHostAddress& localAddress,
+                               quint16 localPort,
+                               const QHostAddress& peerAddress,
+                               quint16 peerPort,
+                               qint64 socketId)
 {
     Q_UNUSED(identity)
     Q_UNUSED(localAddress)
@@ -237,14 +250,12 @@ void IdentServer::removeSocket(const CoreIdentity *identity, const QHostAddress 
     processWaiting(socketId);
 }
 
-
 qint64 IdentServer::addWaitingSocket()
 {
     qint64 newSocketId = _socketId++;
     _waiting.push_back(newSocketId);
     return newSocketId;
 }
-
 
 qint64 IdentServer::lowestSocketId() const
 {
@@ -255,12 +266,10 @@ qint64 IdentServer::lowestSocketId() const
     return _waiting.front();
 }
 
-
 void IdentServer::removeWaitingSocket(qint64 socketId)
 {
     _waiting.remove(socketId);
 }
-
 
 void IdentServer::processWaiting(qint64 socketId)
 {
@@ -280,8 +289,7 @@ void IdentServer::processWaiting(qint64 socketId)
     });
 }
 
-
-bool operator==(const Request &a, const Request &b)
+bool operator==(const Request& a, const Request& b)
 {
     return a.requestId == b.requestId;
 }

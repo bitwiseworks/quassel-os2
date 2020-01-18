@@ -18,8 +18,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.         *
  ***************************************************************************/
 
-#ifndef IRCCAP_H
-#define IRCCAP_H
+#pragma once
 
 #include <QString>
 #include <QStringList>
@@ -102,6 +101,13 @@ namespace IrcCap {
     const QString USERHOST_IN_NAMES = "userhost-in-names";
 
     /**
+     * Server time for messages.
+     *
+     * https://ircv3.net/specs/extensions/server-time-3.2.html
+     */
+    const QString SERVER_TIME = "server-time";
+
+    /**
      * Vendor-specific capabilities
      */
     namespace Vendor {
@@ -134,18 +140,17 @@ namespace IrcCap {
     /**
      * List of capabilities currently implemented and requested during capability negotiation.
      */
-    const QStringList knownCaps = QStringList {
-            ACCOUNT_NOTIFY,
-            AWAY_NOTIFY,
-            CAP_NOTIFY,
-            CHGHOST,
-            EXTENDED_JOIN,
-            MULTI_PREFIX,
-            SASL,
-            USERHOST_IN_NAMES,
-            Vendor::TWITCH_MEMBERSHIP,
-            Vendor::ZNC_SELF_MESSAGE
-    };
+    const QStringList knownCaps = QStringList{ACCOUNT_NOTIFY,
+                                              AWAY_NOTIFY,
+                                              CAP_NOTIFY,
+                                              CHGHOST,
+                                              EXTENDED_JOIN,
+                                              MULTI_PREFIX,
+                                              SASL,
+                                              USERHOST_IN_NAMES,
+                                              SERVER_TIME,
+                                              Vendor::TWITCH_MEMBERSHIP,
+                                              Vendor::ZNC_SELF_MESSAGE};
     // NOTE: If you modify the knownCaps list, update the constants above as needed.
 
     /**
@@ -165,5 +170,3 @@ namespace IrcCap {
         const QString EXTERNAL = "EXTERNAL";
     }
 }
-
-#endif // IRCCAP_H

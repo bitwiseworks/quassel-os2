@@ -18,34 +18,41 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.         *
  ***************************************************************************/
 
-#ifndef STORAGE_H
-#define STORAGE_H
+#pragma once
 
-#include <QtCore>
+#include <vector>
 
-#include "types.h"
+#include <QMap>
+#include <QObject>
+#include <QProcessEnvironment>
+#include <QString>
+#include <QVariant>
+#include <QVariantList>
+
 #include "coreidentity.h"
 #include "message.h"
 #include "network.h"
+#include "types.h"
 
 class Storage : public QObject
 {
     Q_OBJECT
 
 public:
-    Storage(QObject *parent = 0);
-    virtual ~Storage() {};
+    Storage(QObject* parent = nullptr);
 
-    enum State {
-        IsReady,    // ready to go
-        NeedsSetup, // need basic setup (ask the user for input)
-        NotAvailable // remove the storage backend from the list of avaliable backends
+    enum State
+    {
+        IsReady,      // ready to go
+        NeedsSetup,   // need basic setup (ask the user for input)
+        NotAvailable  // remove the storage backend from the list of avaliable backends
     };
 
-    enum HashVersion {
+    enum HashVersion
+    {
         Sha1,
         Sha2_512,
-        Latest=Sha2_512
+        Latest = Sha2_512
 
     };
 
@@ -85,17 +92,19 @@ public slots:
      *  \param settings   Hostname, port, username, password, ...
      *  \return True if and only if the storage provider was initialized successfully.
      */
-    virtual bool setup(const QVariantMap &settings = QVariantMap(),
-                       const QProcessEnvironment &environment = {},
-                       bool loadFromEnvironment = false) = 0;
+    virtual bool setup(const QVariantMap& settings = QVariantMap(),
+                       const QProcessEnvironment& environment = {},
+                       bool loadFromEnvironment = false)
+        = 0;
 
     //! Initialize the storage provider
     /** \param settings   Hostname, port, username, password, ...
      *  \return the State the storage backend is now in (see Storage::State)
      */
-    virtual State init(const QVariantMap &settings = QVariantMap(),
-                       const QProcessEnvironment &environment = {},
-                       bool loadFromEnvironment = false) = 0;
+    virtual State init(const QVariantMap& settings = QVariantMap(),
+                       const QProcessEnvironment& environment = {},
+                       bool loadFromEnvironment = false)
+        = 0;
 
     //! Makes temp data persistent
     /** This Method is periodically called by the Quassel Core to make temporary
@@ -113,40 +122,39 @@ public slots:
      *  \param password The cleartext password for the new user
      *  \return The new user's UserId
      */
-    virtual UserId addUser(const QString &user, const QString &password, const QString &authenticator = "Database") = 0;
+    virtual UserId addUser(const QString& user, const QString& password, const QString& authenticator = "Database") = 0;
 
     //! Update a core user's password.
     /** \param user     The user's id
      *  \param password The user's new password
      *  \return true on success.
      */
-    virtual bool updateUser(UserId user, const QString &password) = 0;
+    virtual bool updateUser(UserId user, const QString& password) = 0;
 
     //! Rename a user
     /** \param user     The user's id
      *  \param newName  The user's new name
      */
-    virtual void renameUser(UserId user, const QString &newName) = 0;
+    virtual void renameUser(UserId user, const QString& newName) = 0;
 
     //! Validate a username with a given password.
     /** \param user     The username to validate
      *  \param password The user's alleged password
      *  \return A valid UserId if the password matches the username; 0 else
      */
-    virtual UserId validateUser(const QString &user, const QString &password) = 0;
+    virtual UserId validateUser(const QString& user, const QString& password) = 0;
 
     //! Check if a user with given username exists. Do not use for login purposes!
     /** \param username  The username to validate
      *  \return A valid UserId if the user exists; 0 else
      */
-    virtual UserId getUserId(const QString &username) = 0;
+    virtual UserId getUserId(const QString& username) = 0;
 
     //! Get the authentication provider for a given user.
     /** \param username  The username to validate
      *  \return The name of the auth provider if the UserId exists, "" otherwise.
      */
     virtual QString getUserAuthenticator(const UserId userid) = 0;
-
 
     //! Determine the UserId of the internal user
     /** \return A valid UserId if the password matches the username; 0 else
@@ -164,7 +172,7 @@ public slots:
      * \param settingName  The Name of the Setting
      * \param data         The Value
      */
-    virtual void setUserSetting(UserId userId, const QString &settingName, const QVariant &data) = 0;
+    virtual void setUserSetting(UserId userId, const QString& settingName, const QVariant& data) = 0;
 
     //! Retrieve a persistent user setting
     /**
@@ -173,26 +181,26 @@ public slots:
      * \param default      Value to return in case it's unset.
      * \return the Value of the Setting or the default value if it is unset.
      */
-    virtual QVariant getUserSetting(UserId userId, const QString &settingName, const QVariant &data = QVariant()) = 0;
+    virtual QVariant getUserSetting(UserId userId, const QString& settingName, const QVariant& data = QVariant()) = 0;
 
     //! Store core state
     /**
      * \param data         Active Sessions
      */
-    virtual void setCoreState(const QVariantList &data) = 0;
+    virtual void setCoreState(const QVariantList& data) = 0;
 
     //! Retrieve core state
     /**
      * \param default      Value to return in case it's unset.
      * \return Active Sessions
      */
-    virtual QVariantList getCoreState(const QVariantList &data = QVariantList()) = 0;
+    virtual QVariantList getCoreState(const QVariantList& data = QVariantList()) = 0;
 
     /* Identity handling */
-    virtual IdentityId createIdentity(UserId user, CoreIdentity &identity) = 0;
-    virtual bool updateIdentity(UserId user, const CoreIdentity &identity) = 0;
+    virtual IdentityId createIdentity(UserId user, CoreIdentity& identity) = 0;
+    virtual bool updateIdentity(UserId user, const CoreIdentity& identity) = 0;
     virtual void removeIdentity(UserId user, IdentityId identityId) = 0;
-    virtual QList<CoreIdentity> identities(UserId user) = 0;
+    virtual std::vector<CoreIdentity> identities(UserId user) = 0;
 
     /* Network handling */
 
@@ -201,7 +209,7 @@ public slots:
      *  \param networkInfo The networkInfo holding the network definition
      *  \return the NetworkId of the newly created Network. Possibly invalid.
      */
-    virtual NetworkId createNetwork(UserId user, const NetworkInfo &info) = 0;
+    virtual NetworkId createNetwork(UserId user, const NetworkInfo& info) = 0;
 
     //! Apply the changes to NetworkInfo info to the storage engine
     /**
@@ -209,7 +217,7 @@ public slots:
      *  \param networkInfo The Updated NetworkInfo
      *  \return true if successfull.
      */
-    virtual bool updateNetwork(UserId user, const NetworkInfo &info) = 0;
+    virtual bool updateNetwork(UserId user, const NetworkInfo& info) = 0;
 
     //! Permanently remove a Network and all the data associated with it.
     /** \note This method is thredsafe.
@@ -218,7 +226,7 @@ public slots:
      *  \param networkId   The network to delete
      *  \return true if successfull.
      */
-    virtual bool removeNetwork(UserId user, const NetworkId &networkId) = 0;
+    virtual bool removeNetwork(UserId user, const NetworkId& networkId) = 0;
 
     //! Returns a list of all NetworkInfos for the given UserId user
     /** \note This method is thredsafe.
@@ -226,7 +234,7 @@ public slots:
      *  \param user        The core user
      *  \return QList<NetworkInfo>.
      */
-    virtual QList<NetworkInfo> networks(UserId user) = 0;
+    virtual std::vector<NetworkInfo> networks(UserId user) = 0;
 
     //! Get a list of Networks to restore
     /** Return a list of networks the user was connected at the time of core shutdown
@@ -234,7 +242,7 @@ public slots:
      *
      *  \param user  The User Id in question
      */
-    virtual QList<NetworkId> connectedNetworks(UserId user) = 0;
+    virtual std::vector<NetworkId> connectedNetworks(UserId user) = 0;
 
     //! Update the connected state of a network
     /** \note This method is threadsafe
@@ -243,7 +251,7 @@ public slots:
      *  \param networkId   The Id of the network
      *  \param isConnected whether the network is connected or not
      */
-    virtual void setNetworkConnected(UserId user, const NetworkId &networkId, bool isConnected) = 0;
+    virtual void setNetworkConnected(UserId user, const NetworkId& networkId, bool isConnected) = 0;
 
     //! Get a hash of channels with their channel keys for a given network
     /** The keys are channel names and values are passwords (possibly empty)
@@ -252,7 +260,7 @@ public slots:
      *  \param user       The id of the networks owner
      *  \param networkId  The Id of the network
      */
-    virtual QHash<QString, QString> persistentChannels(UserId user, const NetworkId &networkId) = 0;
+    virtual QHash<QString, QString> persistentChannels(UserId user, const NetworkId& networkId) = 0;
 
     //! Update the connected state of a channel
     /** \note This method is threadsafe
@@ -262,7 +270,7 @@ public slots:
      *  \param channel    The name of the channel
      *  \param isJoined   whether the channel is connected or not
      */
-    virtual void setChannelPersistent(UserId user, const NetworkId &networkId, const QString &channel, bool isJoined) = 0;
+    virtual void setChannelPersistent(UserId user, const NetworkId& networkId, const QString& channel, bool isJoined) = 0;
 
     //! Update the key of a channel
     /** \note This method is threadsafe
@@ -272,7 +280,7 @@ public slots:
      *  \param channel    The name of the channel
      *  \param key        The key of the channel (possibly empty)
      */
-    virtual void setPersistentChannelKey(UserId user, const NetworkId &networkId, const QString &channel, const QString &key) = 0;
+    virtual void setPersistentChannelKey(UserId user, const NetworkId& networkId, const QString& channel, const QString& key) = 0;
 
     //! retrieve last known away message for session restore
     /** \note This method is threadsafe
@@ -289,7 +297,7 @@ public slots:
      *  \param networkId  The Id of the network
      *  \param awayMsg    The current away message of own user
      */
-    virtual void setAwayMessage(UserId user, NetworkId networkId, const QString &awayMsg) = 0;
+    virtual void setAwayMessage(UserId user, NetworkId networkId, const QString& awayMsg) = 0;
 
     //! retrieve last known user mode for session restore
     /** \note This method is threadsafe
@@ -306,7 +314,7 @@ public slots:
      *  \param networkId  The Id of the network
      *  \param userModes  The current user modes of own user
      */
-    virtual void setUserModes(UserId user, NetworkId networkId, const QString &userModes) = 0;
+    virtual void setUserModes(UserId user, NetworkId networkId, const QString& userModes) = 0;
 
     /* Buffer handling */
 
@@ -318,21 +326,22 @@ public slots:
      *  \param create    Whether or not the buffer should be created if it doesnt exist
      *  \return The BufferInfo corresponding to the given network and buffer name, or an invalid BufferInfo if not found
      */
-    virtual BufferInfo bufferInfo(UserId user, const NetworkId &networkId, BufferInfo::Type type, const QString &buffer = "", bool create = true) = 0;
+    virtual BufferInfo bufferInfo(UserId user, const NetworkId& networkId, BufferInfo::Type type, const QString& buffer = "", bool create = true)
+        = 0;
 
     //! Get the unique BufferInfo for a bufferId
     /** \param user      The core user who owns this buffername
      *  \param bufferId  The id of the buffer
      *  \return The BufferInfo corresponding to the given buffer id, or an invalid BufferInfo if not found.
      */
-    virtual BufferInfo getBufferInfo(UserId user, const BufferId &bufferId) = 0;
+    virtual BufferInfo getBufferInfo(UserId user, const BufferId& bufferId) = 0;
 
     //! Request a list of all buffers known to a user.
     /** This method is used to get a list of all buffers we have stored a backlog from.
      *  \param user  The user whose buffers we request
      *  \return A list of the BufferInfos for all buffers as requested
      */
-    virtual QList<BufferInfo> requestBuffers(UserId user) = 0;
+    virtual std::vector<BufferInfo> requestBuffers(UserId user) = 0;
 
     //! Request a list of BufferIds for a given NetworkId
     /** \note This method is threadsafe.
@@ -341,7 +350,7 @@ public slots:
      *  \param networkId  The NetworkId of the network in question
      *  \return List of BufferIds belonging to the Network
      */
-    virtual QList<BufferId> requestBufferIdsForNetwork(UserId user, NetworkId networkId) = 0;
+    virtual std::vector<BufferId> requestBufferIdsForNetwork(UserId user, NetworkId networkId) = 0;
 
     //! Remove permanently a buffer and it's content from the storage backend
     /** This call cannot be reverted!
@@ -349,7 +358,7 @@ public slots:
      *  \param bufferId  The bufferId
      *  \return true if successfull
      */
-    virtual bool removeBuffer(const UserId &user, const BufferId &bufferId) = 0;
+    virtual bool removeBuffer(const UserId& user, const BufferId& bufferId) = 0;
 
     //! Rename a Buffer
     /** \note This method is threadsafe.
@@ -358,7 +367,7 @@ public slots:
      *  \param newName   The new name of the buffer
      *  \return true if successfull
      */
-    virtual bool renameBuffer(const UserId &user, const BufferId &bufferId, const QString &newName) = 0;
+    virtual bool renameBuffer(const UserId& user, const BufferId& bufferId, const QString& newName) = 0;
 
     //! Merge the content of two Buffers permanently. This cannot be reversed!
     /** \note This method is threadsafe.
@@ -367,7 +376,7 @@ public slots:
      *  \param bufferId2 The buffer that is about to be removed
      *  \return true if successfull
      */
-    virtual bool mergeBuffersPermanently(const UserId &user, const BufferId &bufferId1, const BufferId &bufferId2) = 0;
+    virtual bool mergeBuffersPermanently(const UserId& user, const BufferId& bufferId1, const BufferId& bufferId2) = 0;
 
     //! Update the LastSeenDate for a Buffer
     /** This Method is used to make the LastSeenDate of a Buffer persistent
@@ -375,7 +384,7 @@ public slots:
      * \param bufferId  The buffer id
      * \param MsgId     The Message id of the message that has been just seen
      */
-    virtual void setBufferLastSeenMsg(UserId user, const BufferId &bufferId, const MsgId &msgId) = 0;
+    virtual void setBufferLastSeenMsg(UserId user, const BufferId& bufferId, const MsgId& msgId) = 0;
 
     //! Get a Hash of all last seen message ids
     /** This Method is called when the Quassel Core is started to restore the lastSeenMsgIds
@@ -391,7 +400,7 @@ public slots:
      * \param bufferId  The buffer id
      * \param MsgId     The Message id where the marker line should be placed
      */
-    virtual void setBufferMarkerLineMsg(UserId user, const BufferId &bufferId, const MsgId &msgId) = 0;
+    virtual void setBufferMarkerLineMsg(UserId user, const BufferId& bufferId, const MsgId& msgId) = 0;
 
     //! Get a Hash of all marker line message ids
     /** This Method is called when the Quassel Core is started to restore the MarkerLineMsgIds
@@ -435,7 +444,7 @@ public slots:
      *  \param user       The id of the networks owner
      *  \param networkId  The Id of the network
      */
-    virtual QHash<QString, QByteArray> bufferCiphers(UserId user, const NetworkId &networkId) = 0;
+    virtual QHash<QString, QByteArray> bufferCiphers(UserId user, const NetworkId& networkId) = 0;
 
     //! Update the cipher of a buffer
     /** \note This method is threadsafe
@@ -445,7 +454,7 @@ public slots:
      *  \param bufferName The Cname of the buffer
      *  \param cipher      The cipher for the buffer
      */
-    virtual void setBufferCipher(UserId user, const NetworkId &networkId, const QString &bufferName, const QByteArray &cipher) = 0;
+    virtual void setBufferCipher(UserId user, const NetworkId& networkId, const QString& bufferName, const QByteArray& cipher) = 0;
 
     //! Update the highlight count for a Buffer
     /** This Method is used to make the activity state of a Buffer persistent
@@ -480,13 +489,13 @@ public slots:
     /** \param msg  The message object to be stored
      *  \return true on success
      */
-    virtual bool logMessage(Message &msg) = 0;
+    virtual bool logMessage(Message& msg) = 0;
 
     //! Store a list of Messages in the storage backend and set their unique Id.
     /** \param msgs The list message objects to be stored
      *  \return true on success
      */
-    virtual bool logMessages(MessageList &msgs) = 0;
+    virtual bool logMessages(MessageList& msgs) = 0;
 
     //! Request a certain number messages stored in a given buffer.
     /** \param buffer   The buffer we request messages from
@@ -495,7 +504,7 @@ public slots:
      *  \param limit    if != -1 limit the returned list to a max of \limit entries
      *  \return The requested list of messages
      */
-    virtual QList<Message> requestMsgs(UserId user, BufferId bufferId, MsgId first = -1, MsgId last = -1, int limit = -1) = 0;
+    virtual std::vector<Message> requestMsgs(UserId user, BufferId bufferId, MsgId first = -1, MsgId last = -1, int limit = -1) = 0;
 
     //! Request a certain number messages stored in a given buffer, matching certain filters
     /** \param buffer   The buffer we request messages from
@@ -505,9 +514,13 @@ public slots:
      *  \param type     The Message::Types that should be returned
      *  \return The requested list of messages
      */
-    virtual QList<Message> requestMsgsFiltered(UserId user, BufferId bufferId, MsgId first = -1, MsgId last = -1,
-                                               int limit = -1, Message::Types type = Message::Types{-1},
-                                               Message::Flags flags = Message::Flags{-1}) = 0;
+    virtual std::vector<Message> requestMsgsFiltered(UserId user,
+                                                     BufferId bufferId,
+                                                     MsgId first = -1,
+                                                     MsgId last = -1,
+                                                     int limit = -1,
+                                                     Message::Types type = Message::Types{-1},
+                                                     Message::Flags flags = Message::Flags{-1}) = 0;
 
     //! Request a certain number of messages across all buffers
     /** \param first    if != -1 return only messages with a MsgId >= first
@@ -515,7 +528,7 @@ public slots:
      *  \param limit    Max amount of messages
      *  \return The requested list of messages
      */
-    virtual QList<Message> requestAllMsgs(UserId user, MsgId first = -1, MsgId last = -1, int limit = -1) = 0;
+    virtual std::vector<Message> requestAllMsgs(UserId user, MsgId first = -1, MsgId last = -1, int limit = -1) = 0;
 
     //! Request a certain number of messages across all buffers, matching certain filters
     /** \param first    if != -1 return only messages with a MsgId >= first
@@ -524,9 +537,12 @@ public slots:
      *  \param type     The Message::Types that should be returned
      *  \return The requested list of messages
      */
-    virtual QList<Message> requestAllMsgsFiltered(UserId user, MsgId first = -1, MsgId last = -1, int limit = -1,
-                                                  Message::Types type = Message::Types{-1},
-                                                  Message::Flags flags = Message::Flags{-1}) = 0;
+    virtual std::vector<Message> requestAllMsgsFiltered(UserId user,
+                                                        MsgId first = -1,
+                                                        MsgId last = -1,
+                                                        int limit = -1,
+                                                        Message::Types type = Message::Types{-1},
+                                                        Message::Flags flags = Message::Flags{-1}) = 0;
 
     //! Fetch all authusernames
     /** \return      Map of all current UserIds to permitted idents
@@ -535,13 +551,13 @@ public slots:
 
 signals:
     //! Sent when a new BufferInfo is created, or an existing one changed somehow.
-    void bufferInfoUpdated(UserId user, const BufferInfo &);
+    void bufferInfoUpdated(UserId user, const BufferInfo&);
     //! Sent when a Buffer was renamed
-    void bufferRenamed(const QString &newName, const QString &oldName);
+    void bufferRenamed(const QString& newName, const QString& oldName);
     //! Sent when a new user has been added
-    void userAdded(UserId, const QString &username);
+    void userAdded(UserId, const QString& username);
     //! Sent when a user has been renamed
-    void userRenamed(UserId, const QString &newname);
+    void userRenamed(UserId, const QString& newname);
     //! Sent when a user has been removed
     void userRemoved(UserId);
 
@@ -549,17 +565,14 @@ signals:
     void dbUpgradeInProgress(bool inProgress);
 
 protected:
-    QString hashPassword(const QString &password);
-    bool checkHashedPassword(const UserId user, const QString &password, const QString &hashedPassword, const Storage::HashVersion version);
+    QString hashPassword(const QString& password);
+    bool checkHashedPassword(const UserId user, const QString& password, const QString& hashedPassword, const Storage::HashVersion version);
 
 private:
-    QString hashPasswordSha1(const QString &password);
-    bool checkHashedPasswordSha1(const QString &password, const QString &hashedPassword);
+    QString hashPasswordSha1(const QString& password);
+    bool checkHashedPasswordSha1(const QString& password, const QString& hashedPassword);
 
-    QString hashPasswordSha2_512(const QString &password);
-    bool checkHashedPasswordSha2_512(const QString &password, const QString &hashedPassword);
-    QString sha2_512(const QString &input);
+    QString hashPasswordSha2_512(const QString& password);
+    bool checkHashedPasswordSha2_512(const QString& password, const QString& hashedPassword);
+    QString sha2_512(const QString& input);
 };
-
-
-#endif
