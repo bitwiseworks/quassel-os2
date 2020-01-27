@@ -180,12 +180,21 @@ void Quassel::setupEnvironment()
     // is, for example, used by Qt for finding icons and other things. In case Quassel is installed in a non-standard
     // prefix (or run from the build directory), it makes sense to add this to XDG_DATA_DIRS so we don't have to
     // hack extra search paths into various places.
-#ifdef Q_OS_UNIX
+#if defined(Q_OS_UNIX) || defined(Q_OS_OS2)
     QString xdgDataVar = QFile::decodeName(qgetenv("XDG_DATA_DIRS"));
-    if (xdgDataVar.isEmpty())
-        xdgDataVar = QLatin1String("/usr/local/share:/usr/share");  // sane defaults
 
+    if (xdgDataVar.isEmpty())
+#if defined(Q_OS_OS2)
+        xdgDataVar = QLatin1String("/@unixroot/usr/local/share;/@unixroot/usr/share");  // sane defaults
+#else
+        xdgDataVar = QLatin1String("/usr/local/share:/usr/share");  // sane defaults
+#endif
+
+#if defined(Q_OS_OS2)
+    QStringList xdgDirs = xdgDataVar.split(QLatin1Char(';'), QString::SkipEmptyParts);
+#else
     QStringList xdgDirs = xdgDataVar.split(QLatin1Char(':'), QString::SkipEmptyParts);
+#endif
 
     // Add our install prefix (if we're not in a bindir, this just adds the current workdir)
     QString appDir = QCoreApplication::applicationDirPath();
@@ -506,10 +515,19 @@ QStringList Quassel::dataDirPaths()
     // Now whatever is configured through XDG_DATA_DIRS
     QString xdgDataDirs = QFile::decodeName(qgetenv("XDG_DATA_DIRS"));
     if (xdgDataDirs.isEmpty())
+#if defined(Q_OS_OS2)
+        dataDirNames << "/@unixroot/usr/local/share"
+                     << "/@unixroot/usr/share";
+#else
         dataDirNames << "/usr/local/share"
                      << "/usr/share";
+#endif
     else
+#if defined(Q_OS_OS2)
+        dataDirNames << xdgDataDirs.split(';', QString::SkipEmptyParts);
+#else
         dataDirNames << xdgDataDirs.split(':', QString::SkipEmptyParts);
+#endif
 
     // Just in case, also check our install prefix
     dataDirNames << QCoreApplication::applicationDirPath() + "/../share";
@@ -523,7 +541,9 @@ QStringList Quassel::dataDirPaths()
     // Add resource path and workdir just in case.
     // Workdir should have precedence
     dataDirNames.prepend(QCoreApplication::applicationDirPath() + "/data/");
+#if !defined(Q_OS_OS2)
     dataDirNames.append(":/data/");
+#endif
 
     // Append trailing '/' and check for existence
     auto iter = dataDirNames.begin();

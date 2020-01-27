@@ -30,7 +30,7 @@
 #    include "mac_utils.h"
 #endif
 
-#ifdef Q_OS_UNIX
+#if defined(Q_OS_UNIX) || defined(Q_OS_OS2)
 #    include <pwd.h>
 #    include <sys/types.h>
 #    include <unistd.h>
@@ -107,7 +107,7 @@ QString Identity::defaultNick()
     if (!shortUserName.isEmpty())
         nick = shortUserName;
 
-#elif defined(Q_OS_UNIX)
+#elif defined(Q_OS_UNIX) || defined(Q_OS_OS2)
     QString userName;
     struct passwd* pwd = getpwuid(getuid());
     if (pwd)
@@ -143,7 +143,7 @@ QString Identity::defaultRealName()
 #ifdef Q_OS_MAC
     return CFStringToQString(CSCopyUserName(false));
 
-#elif defined(Q_OS_UNIX)
+#elif defined(Q_OS_UNIX) || defined(Q_OS_OS2)
     QString realName;
     struct passwd* pwd = getpwuid(getuid());
     if (pwd)
