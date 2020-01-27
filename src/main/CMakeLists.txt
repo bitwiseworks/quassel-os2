@@ -38,6 +38,12 @@ endif()
 if (WANT_CORE)
     add_executable(quasselcore main.cpp ${WIN_RC})
     setup_executable(quasselcore -DBUILD_CORE Qt5::Core Quassel::Core)
+  if(OS2)
+    set_target_properties(quasselcore PROPERTIES
+      OS2_DEF_VENDOR "$ENV{VENDOR}"
+      OS2_DEF_PATCH "${QUASSEL_PATCH}"
+      OS2_DEF_VERSION "${QUASSEL_VERSION_STRING}")
+  endif(OS2)
 endif()
 
 if (WANT_QTCLIENT)
@@ -46,6 +52,13 @@ if (WANT_QTCLIENT)
     if (WITH_KDE)
         target_link_libraries(quasselclient PRIVATE KF5::CoreAddons)
     endif()
+  if(OS2)
+    set_target_properties(quasselclient PROPERTIES
+      OS2_DEF_VENDOR "$ENV{VENDOR}"
+      OS2_DEF_PATCH "${QUASSEL_PATCH}"
+      OS2_DEF_VERSION "${QUASSEL_VERSION_STRING}"
+      OS2_DEF_EXEType "WINDOWAPI")
+  endif(OS2)
 endif()
 
 if (WANT_MONO)
@@ -54,6 +67,13 @@ if (WANT_MONO)
     if (WITH_KDE)
         target_link_libraries(quassel PRIVATE KF5::CoreAddons)
     endif()
+  if(OS2)
+    set_target_properties(quassel PROPERTIES
+      OS2_DEF_VENDOR "$ENV{VENDOR}"
+      OS2_DEF_PATCH "${QUASSEL_PATCH}"
+      OS2_DEF_VERSION "${QUASSEL_VERSION_STRING}"
+      OS2_DEF_EXEType "WINDOWAPI")
+  endif(OS2)
 endif()
 
 # Build bundles for MacOSX

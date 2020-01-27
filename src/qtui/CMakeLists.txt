@@ -111,6 +111,14 @@ target_link_libraries(${TARGET}
         Quassel::Common
 )
 
+if(OS2)
+    set_target_properties(${TARGET} PROPERTIES
+        OS2_DEF_VENDOR "$ENV{VENDOR}"
+        OS2_DEF_PATCH "${QUASSEL_PATCH}"
+        OS2_DEF_VERSION "${QUASSEL_VERSION_STRING}"
+        TARGET_SHORT quasqtui)
+endif()
+
 if (WITH_KDE)
     target_sources(${TARGET} PRIVATE knotificationbackend.cpp)
     target_link_libraries(${TARGET} PUBLIC

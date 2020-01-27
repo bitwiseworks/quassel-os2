@@ -53,6 +53,14 @@ target_link_libraries(${TARGET}
         Quassel::Common
 )
 
+if(OS2)
+    set_target_properties(${TARGET} PROPERTIES
+        OS2_DEF_VENDOR "$ENV{VENDOR}"
+        OS2_DEF_PATCH "${QUASSEL_PATCH}"
+        OS2_DEF_VERSION "${QUASSEL_VERSION_STRING}"
+        TARGET_SHORT quascore)
+endif()
+
 if (HAVE_UMASK)
     set_property(SOURCE oidentdconfiggenerator.cpp APPEND PROPERTY COMPILE_DEFINITIONS HAVE_UMASK)
 endif()

@@ -97,7 +97,7 @@ endif()
 
 # Always embed on Windows or OSX; never embed when enabling KDE integration
 set(EMBED_DEFAULT OFF)
-if (WIN32 OR APPLE)
+if (WIN32 OR APPLE OR OS2)
     set(EMBED_DEFAULT ON)
 endif()
 cmake_dependent_option(EMBED_DATA "Embed icons and translations into the binaries instead of installing them" ${EMBED_DEFAULT}
